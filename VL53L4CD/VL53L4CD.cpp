@@ -12,6 +12,10 @@
 #include "VL53L4CD.h"
 #include <math.h>
 
+// Do not change these delays.
+#define VL53L4CD_I2C_DELAY_US 150
+#define VL53L4CD_ADDRESS_CHANGE_DELAY_MS 60
+
 namespace
 {
   const uint8_t default_configuration[] = {
@@ -128,8 +132,11 @@ bool VL53L4CD::writeChunk(uint16_t reg, uint8_t const * src, uint8_t count)
     return false;
   }
   bool success = endTransfer();
-  delayMicroseconds(150);
-  if (success && reg == I2C_SLAVE_DEVICE_ADDRESS) { delay(60); }
+  delayMicroseconds(VL53L4CD_I2C_DELAY_US);
+  if (success && reg == I2C_SLAVE_DEVICE_ADDRESS)
+  {
+    delay(VL53L4CD_ADDRESS_CHANGE_DELAY_MS);
+  }
   return success;
 }
 
@@ -146,9 +153,9 @@ bool VL53L4CD::readChunk(uint16_t reg, uint8_t * dst, uint8_t count)
     return false;
   }
   if (!endTransfer()) { return false; }
-  delayMicroseconds(150);
+  delayMicroseconds(VL53L4CD_I2C_DELAY_US);
   uint8_t received = bus->requestFrom(address, count);
-  delayMicroseconds(150);
+  delayMicroseconds(VL53L4CD_I2C_DELAY_US);
 #if defined(WIRE_HAS_TIMEOUT)
   if (bus->getWireTimeoutFlag())
   {

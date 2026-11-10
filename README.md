@@ -13,7 +13,7 @@ The EZrange breakout uses a bridge-specific I2C protocol.
 
 ## Download
 
-[Download Arduino library v2.0.2](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/download/v2.0.2/VL53L4CD_breakout_Arduino_v2.0.2.zip)
+[Download Arduino library v2.0.3](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/download/v2.0.3/VL53L4CD_breakout_Arduino_v2.0.3.zip)
 
 [Latest release](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/latest)
 | [All releases](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases)
@@ -31,7 +31,7 @@ example for your Arduino board.
 
 1. Download the release ZIP, not GitHub's automatic "Source code" archive.
 2. In Arduino IDE, select **Sketch > Include Library > Add .ZIP Library**
-   and choose `VL53L4CD_breakout_Arduino_v2.0.2.zip`.
+   and choose `VL53L4CD_breakout_Arduino_v2.0.3.zip`.
    Alternatively, extract its `VL53L4CD` folder into your sketchbook's
    `libraries` directory and restart Arduino IDE.
 3. Connect SDA, SCL, and GND to the corresponding breakout pins. Use the
@@ -61,6 +61,11 @@ ChangeAddress use **400 kHz I2C**. ChangeAddress writes the bridge's EEPROM:
 avoid unnecessary writes and use the new address in later sketches. Connect
 only one device at the old address; an I2C scan cannot detect address
 collisions.
+
+## Version 2.0.3
+
+- Defines the fixed I2C transfer delays as macros and documents that they must
+  not be changed; delay durations and behavior are unchanged.
 
 ## Version 2.0.2
 

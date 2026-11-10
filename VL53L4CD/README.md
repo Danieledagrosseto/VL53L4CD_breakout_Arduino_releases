@@ -44,8 +44,8 @@ bridge. Invalid constructor addresses are rejected on subsequent I/O.
 
 ## Installation
 
-Download the v2.0.2 Arduino library ZIP from the
-[GitHub release](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/download/v2.0.2/VL53L4CD_breakout_Arduino_v2.0.2.zip),
+Download the v2.0.3 Arduino library ZIP from the
+[GitHub release](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/download/v2.0.3/VL53L4CD_breakout_Arduino_v2.0.3.zip),
 then select **Sketch > Include Library > Add .ZIP Library** in Arduino IDE.
 For manual installation, extract the ZIP and follow the instructions below.
 Do not use GitHub's automatic "Source code" archive.
