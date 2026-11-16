@@ -12,6 +12,7 @@ class FakeSerial
     unsigned long baud = 0;
     void begin(unsigned long rate) { baud = rate; }
     int available() { return (int)input.size(); }
+    int peek() { return input.empty() ? -1 : input[0]; }
     int read()
     {
       char ch = input[0];
@@ -163,22 +164,29 @@ int main()
   assert(phase == Scan && printed("Wire status: 5"));
   Wire.timeout_on_end = false;
   Wire = TwoWire();
-  Serial.input = "invalid\n78\n21\n0x29\r\n";
+  Serial.input = "invalid\n78\n21\n0x29\r\n15\r\n\r\n\r\n";
   continuousSetup();
   assert(continuousSensor.getAddress() == 0x29);
   assert(continuousSensor.getLastError() == VL53L4CD::NoError);
   assert(Wire.devices.at(0x29).running);
+  assert(printed("Current sigma threshold: 40 mm; signal threshold: 1024 kcps; "
+                 "offset: 0 mm"));
+  assert(printed("Applied sigma threshold: 15 mm; signal threshold: 1024 kcps; "
+                 "offset: 0 mm"));
+  assert(((Wire.devices.at(0x29).registers[0x0064] << 8) |
+          Wire.devices.at(0x29).registers[0x0065]) == 15 << 2);
   assert(addressWrites() == 0 && Serial.baud == 115200);
   continuousLoop();
   assert(continuousSensor.getRangeStatus() == 0);
   Wire = TwoWire();
   Wire.devices.emplace(0x21, FakeDevice());
   Wire.devices.at(0x21).registers[0x010F] = 0;
-  Serial.input = "0x\n21\n 29 \n";
+  Serial.input = "0x\n21\n 29 \n12\n\n\n";
   singleSetup();
   assert(singleSensor.getAddress() == 0x29);
   assert(singleSensor.getLastError() == VL53L4CD::NoError);
   assert(!Wire.devices.at(0x29).running);
+  assert(printed("Applied sigma threshold: 12 mm"));
   assert(addressWrites() == 0 && Serial.baud == 115200);
   singleLoop();
   assert(singleSensor.getRangeStatus() == 0);

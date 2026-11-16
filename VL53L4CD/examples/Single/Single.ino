@@ -1,9 +1,13 @@
 /* One measurement per call from the EZrange VL53L4CD forwarding breakout.
-   Open the Serial Monitor at 115200 baud. Distances are in millimeters. */
+   Open the Serial Monitor at 115200 baud and select Newline or Both NL & CR.
+   After initialization, prompts for the sigma threshold, signal threshold,
+   and offset (empty line keeps the current value). Distances are in
+   millimeters. */
 
 #include <Wire.h>
 #include <VL53L4CD.h>
 #include <VL53L4CDAddressInput.h>
+#include <VL53L4CDRangingParametersInput.h>
 
 VL53L4CD sensor;
 
@@ -31,6 +35,12 @@ void setup()
     Serial.print(", Wire status: ");
     Serial.println(sensor.last_status);
     Serial.println("Check the connection and enter the I2C address again:");
+  }
+
+  if (!promptVL53L4CDRangingParameters(Serial, sensor))
+  {
+    Serial.println("Ranging parameter configuration failed.");
+    while (1) {}
   }
 
 #if defined HIGH_SPEED

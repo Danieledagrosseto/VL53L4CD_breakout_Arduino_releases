@@ -1,9 +1,12 @@
 /* Buffered acquisition from up to six EZrange VL53L4CD forwarding breakouts.
    Serial Monitor: 115200 baud, Newline or Both NL & CR.
-   Addresses must already be unique. Reset to configure another capture. */
+   Addresses must already be unique. After configuration, each sensor prompts
+   for its sigma threshold, signal threshold, and offset (empty line keeps
+   the current value). Reset to configure another capture. */
 
 #include <Wire.h>
 #include <VL53L4CD.h>
+#include <VL53L4CDRangingParametersInput.h>
 
 const uint8_t MAX_SENSORS = 6;
 const uint16_t BUFFER_BYTES = 600;
@@ -160,6 +163,13 @@ void setup()
         !sensors[i].setMeasurementTimingBudget((uint32_t)budgetMs * 1000))
     {
       printSensorError(i);
+      Serial.println(F("Configuration failed. Reset to retry."));
+      return;
+    }
+    Serial.print(F("Ranging parameters for sensor 0x"));
+    Serial.println(sensors[i].getAddress(), HEX);
+    if (!promptVL53L4CDRangingParameters(Serial, sensors[i]))
+    {
       Serial.println(F("Configuration failed. Reset to retry."));
       return;
     }

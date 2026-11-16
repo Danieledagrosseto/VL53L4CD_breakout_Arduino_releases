@@ -14,6 +14,7 @@ class FakeSerial
     bool flushed = false;
     void begin(unsigned long rate) { baud = rate; }
     int available() { return (int)input.size(); }
+    int peek() { return input.empty() ? -1 : input[0]; }
     int read()
     {
       char ch = input[0];
@@ -52,7 +53,8 @@ static bool printed(std::string const & text)
   return Serial.output.str().find(text) != std::string::npos;
 }
 
-static void reset(uint8_t count, std::string const & input = "10\n0\n3\n")
+static void reset(uint8_t count, std::string const & input =
+                  "10\n0\n3\n40\n\n\n40\n\n\n")
 {
   Wire = TwoWire();
   Wire.devices.clear();
@@ -81,7 +83,9 @@ static void startSensors()
 
 int main()
 {
-  reset(6, "9\n201\n999999999999999999999\nabc\n10\n10\n5001\n0\n0\n26\n25\n");
+  reset(6, "9\n201\n999999999999999999999\nabc\n10\n10\n5001\n0\n0\n26\n25\n"
+           "15\n2000\n-5\n"
+           "40\n\n\n40\n\n\n40\n\n\n40\n\n\n40\n\n\n");
   setup();
   assert(configured && sensorCount == 6 && frameCount == 25);
   assert(sizeof(samples) == 600);
@@ -89,6 +93,22 @@ int main()
   assert(printed("Error: nonzero period"));
   assert(printed("Number of frames (1-25)"));
   assert(printed("decimal integer from 1 to 25"));
+  assert(printed("Ranging parameters for sensor 0x30"));
+  assert(printed("Current sigma threshold: 40 mm; signal threshold: 1024 kcps; "
+                 "offset: 0 mm"));
+  assert(printed("Applied sigma threshold: 15 mm; signal threshold: 2000 kcps; "
+                 "offset: -5 mm"));
+  {
+    FakeDevice const & first = Wire.devices.at(0x30);
+    assert(((first.registers[0x0064] << 8) | first.registers[0x0065]) == 15 << 2);
+    assert(((first.registers[0x0066] << 8) | first.registers[0x0067]) == 2000 >> 3);
+    assert(((first.registers[0x001E] << 8) | first.registers[0x001F]) == 0xFFEC);
+    assert(((first.registers[0x0020] << 8) | first.registers[0x0021]) == 0);
+    assert(((first.registers[0x0022] << 8) | first.registers[0x0023]) == 0);
+    FakeDevice const & second = Wire.devices.at(0x31);
+    assert(((second.registers[0x0064] << 8) | second.registers[0x0065]) == 40 << 2);
+    assert(((second.registers[0x0066] << 8) | second.registers[0x0067]) == 0x0080);
+  }
   loop();
   assert(finished && acquisitionTimeMs == 250);
   assert(printed("Acquisition time, capture start to last completed frame (ms): 250"));
@@ -125,8 +145,11 @@ int main()
            transaction.bytes[2] != 1);
   }
 
-  reset(2, "20\r\n50\r\n3\r\n");
+  reset(2, "20\r\n50\r\n3\r\n15\r\n\r\n\r\n10\r\n\r\n\r\n");
   setup();
+  assert(configured);
+  assert(printed("Applied sigma threshold: 15 mm"));
+  assert(printed("Applied sigma threshold: 10 mm"));
   startSensors();
   Wire.devices.at(0x31).registers[0x0089] = 4;
   Serial.forbidOutput = true;
@@ -135,12 +158,12 @@ int main()
   assert(acquisitionTimeMs == 120);
   assert(samples[1].error == VL53L4CD::NoError && samples[1].status == 2);
 
-  reset(1, "10\n0\n1\n");
+  reset(1, "10\n0\n1\n40\n\n\n");
   setup();
   loop();
   assert(acquisitionTimeMs == 10 && printed("frame,address_hex"));
 
-  reset(1, "10\n0\n150\n");
+  reset(1, "10\n0\n150\n40\n\n\n");
   setup();
   startSensors();
   clock_ms = UINT32_MAX - 5;
@@ -149,7 +172,7 @@ int main()
   Serial.forbidOutput = false;
   assert(frameCount == 150 && acquisitionTimeMs == 1500);
 
-  reset(2, "10\n0\n2\n");
+  reset(2, "10\n0\n2\n40\n\n\n40\n\n\n");
   setup();
   startSensors();
   Wire.devices.at(0x30).auto_ready = false;

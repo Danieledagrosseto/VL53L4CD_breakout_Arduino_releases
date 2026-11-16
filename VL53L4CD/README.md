@@ -9,27 +9,6 @@ carrier.** The EZrange bridge uses a different I2C packet format.
 
 ## Hardware
 
-This is the **same EZrange breakout board** used by the
-[portable MCU API release](https://github.com/Danieledagrosseto/VL53L4CD_breakout_API_releases).
-This library instead integrates with Arduino's `Wire` and timing functions;
-Arduino users do not need to implement the portable API's MCU hooks.
-
-### 100-mil connector layout
-
-| Front | Back |
-| --- | --- |
-| ![Front of the EZrange VL53L4CD breakout with 100-mil connector](pictures/with%20100mils%20connector/front.jpg) | ![Back of the EZrange VL53L4CD breakout with 100-mil connector](pictures/with%20100mils%20connector/back.jpg) |
-
-[Schematic source (PRN)](pictures/with%20100mils%20connector/VL53L0X_4CD_breakout_100mils_schematics.prn)
-
-### JST connector layout
-
-| Front | Back |
-| --- | --- |
-| ![Front of the EZrange VL53L4CD breakout with JST connector](pictures/with%20jst%20connector/fronte.jpg) | ![Back of the EZrange VL53L4CD breakout with JST connector](pictures/with%20jst%20connector/retro.jpg) |
-
-[Breakout schematic (PDF)](pictures/with%20jst%20connector/breakout%20schematics.pdf)
-
 Connect the host's SDA, SCL, and GND to the breakout's corresponding pins.
 Use the supply voltage and I2C pull-up voltage specified for your breakout;
 the library does not configure level shifting or I/O voltage. Multiple boards
@@ -44,23 +23,23 @@ bridge. Invalid constructor addresses are rejected on subsequent I/O.
 
 ## Installation
 
-Download the v2.0.3 Arduino library ZIP from the
-[GitHub release](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/download/v2.0.3/VL53L4CD_breakout_Arduino_v2.0.3.zip),
-then select **Sketch > Include Library > Add .ZIP Library** in Arduino IDE.
-For manual installation, extract the ZIP and follow the instructions below.
-Do not use GitHub's automatic "Source code" archive.
-
 Place this library in a folder named `VL53L4CD` inside your Arduino
 sketchbook's `libraries` directory, then restart Arduino IDE. Keep
 `library.properties`, `VL53L4CD.h`, and `VL53L4CD.cpp` together.
 
 Open **File > Examples > VL53L4CD**:
 
-- [Continuous](examples/Continuous/Continuous.ino): continuous ranging.
+- [Continuous](examples/Continuous/Continuous.ino): continuous ranging, after
+  prompting for the sigma threshold, signal threshold, and ranging offset.
 - [MultipleContinuous](examples/MultipleContinuous/MultipleContinuous.ino):
   scan and capture buffered frames from up to six uniquely addressed EZrange
-  breakouts. See [Buffered multi-sensor acquisition](#buffered-multi-sensor-acquisition).
-- [Single](examples/Single/Single.ino): start, read one measurement, then stop.
+  breakouts, prompting per sensor for the sigma threshold, signal threshold,
+  and ranging offset. See [Buffered multi-sensor acquisition](#buffered-multi-sensor-acquisition).
+- [Single](examples/Single/Single.ino): start, read one measurement, then stop,
+  after the same ranging-parameter prompts as Continuous.
+- [OffsetCalibration](examples/OffsetCalibration/OffsetCalibration.ino):
+  read the current offset, prompt for a known distance and sample count, and
+  calibrate/write the offset register. Uses **400 kHz I2C** and **115200 baud**.
 - [ChangeAddress](examples/ChangeAddress/ChangeAddress.ino): scan, prompt for an
   existing old address and unused new address, change the bridge's persistent
   address, and verify sensor ID `0xEBAA` at the new address. Uses **400 kHz I2C**
@@ -83,12 +62,28 @@ Continuous and Single first prompt for the sensor's existing **7-bit hexadecimal
 address** (`08`-`77`, for example `21` or `0x21`). Select **Newline** or
 **Both NL & CR** in Serial Monitor. Invalid input or initialization failures
 allow another attempt; acquisition starts only after successful initialization.
-Selecting an address does not reprogram the bridge's EEPROM. The interactive
-examples share the parser in `VL53L4CDAddressInput.h`; keep that header with the
+Selecting an address does not reprogram the bridge's EEPROM. After
+initialization, the ranging examples (Continuous, Single, and
+MultipleContinuous) display the sensor's current **sigma threshold**
+(0-16383 mm), **signal threshold** (0-16384 kcps), and **ranging offset**
+(-1024 to 1023 mm), prompt for new decimal values, and apply them. An empty
+line keeps the current value; the applied values are read back and printed
+(the signal threshold is stored in 8 kcps steps, rounded down). These writes
+change sensor registers only, not bridge EEPROM, so they revert on sensor
+power cycles. The interactive
+examples share the parsers in `VL53L4CDAddressInput.h` and
+`VL53L4CDRangingParametersInput.h`; keep those headers with the
 library when installing it.
 
+OffsetCalibration prompts for a target distance (**10-1000 mm**) and sample
+count (**5-255**), after displaying the current offset. Keep a target at the
+entered distance while it takes ten warm-up readings and then the requested
+samples. It clears the range, inner, and outer offsets before calibration and
+prints the offset read back from the sensor register afterward. This changes
+the sensor's offset register; it does not write bridge EEPROM.
+
 Continuous uses **400 kHz I2C** and
-the Serial Monitor at **115200 baud**.
+the Serial Monitor at **115200 baud**, matching the VS Code monitor task.
 All examples use **115200 baud**. The scanner uses only
 `Wire` and remains useful for other I2C devices.
 
@@ -107,6 +102,10 @@ Enter three decimal integers, each followed by newline:
 1. Timing budget: **10-200 ms** (10 is fastest; shorter budgets can reduce quality).
 2. Acquisition period: **0** for back-to-back, or **budget < period <= 5000 ms**.
 3. Frame count: **1 to floor(150 / detected sensor count)**, displayed at runtime.
+
+After these, each initialized sensor prompts in turn for its sigma threshold,
+signal threshold, and ranging offset, as described above; an empty line keeps
+that sensor's current value.
 
 A fixed **600-byte** RAM buffer stores distance, library error, and range status
 for every sensor in every frame: 25 frames with six sensors, 150 with one.
@@ -185,6 +184,9 @@ but the hardware configuration and measurement sequence are entirely different.
 | `setAddress(uint8_t)`, `getAddress()` | Use 7-bit addresses `0x08` through `0x77`. Program the bridge and wait 60 ms for EEPROM; update the object's address only on success. |
 | Register and multi-byte access | Same names, but register arguments are now **16-bit**. Data are big-endian. Only mapped register constants remain, with VL53L4CD values. |
 | `setSignalRateLimit(float)`, `getSignalRateLimit()` | MCPS externally, converted to the ULD's kcps threshold representation. Accepted range: 0 through 16.384 MCPS, following the supplied API header. Resolution is 0.008 MCPS, rounded down. Default: 1.024 MCPS. |
+| `setSigmaThreshold(uint16_t)`, `getSigmaThreshold()` | New; follows the ULD. Sigma threshold in mm, **0 through 16383**, stored in quarter-mm units. |
+| `setSignalThreshold(uint16_t)`, `getSignalThreshold()` | New; follows the ULD. Same register as the MCPS methods, expressed in kcps, **0 through 16384**, stored in 8 kcps steps (rounded down). |
+| `setOffset(int16_t)`, `getOffset()` | New; follows the ULD. Ranging offset in mm, **-1024 through 1023**. Setting it also clears the inner and outer offsets. |
 | `setMeasurementTimingBudget(uint32_t)` | Microseconds, **10000 through 200000**, in whole-millisecond steps only. Invalid inputs are rejected, not rounded. Change timing only while stopped. |
 | `getMeasurementTimingBudget()` | Returns the last successfully configured budget in microseconds, not a reconstruction of quantized timing registers. Default: **50000**. Raw register writes do not update this cached configuration. |
 | `startContinuous(0)` | Back-to-back ranging, with the timing budget determining the period. |
@@ -218,7 +220,9 @@ replaces it. Errors are `NoError`, `InvalidArgument`, `I2CError`, `Timeout`,
 - Boolean setters and `init()` return false on failure.
 - Range reads return `65535` on communication, timeout, or state errors.
 - Failed raw reads return all-one values of their return width. Failed
-  `getSignalRateLimit()` returns `NAN`; an uninitialized timing getter returns
+  `getSignalRateLimit()` returns `NAN`; failed `getSigmaThreshold()` and
+  `getSignalThreshold()` return `0xFFFF`; failed `getOffset()` returns zero;
+  an uninitialized timing getter returns
   zero. These sentinels must be checked with `getLastError()`.
 - `readMulti()` can fill a prefix before a later chunk fails; discard the
   destination on error.
@@ -228,9 +232,10 @@ replaces it. Errors are `NoError`, `InvalidArgument`, `I2CError`, `Timeout`,
 
 The status mapping follows the supplied ULD and UM2931 section 4.3. For example,
 1 means sigma too high, 2 means signal below threshold, 5 means hardware failure,
-and 12 means signal too low. This wrapper exposes distance/status only; it does
-not add the ULD's optional calibration, temperature-update, or extended-result
-APIs.
+and 12 means signal too low. This wrapper exposes distance/status plus the
+sigma/signal threshold and offset configuration above; it does
+not add the ULD's temperature-update, detection-threshold-window, or
+extended-result APIs.
 
 ## Breakout transport and timeouts
 
@@ -246,16 +251,15 @@ checks the timeout flag. This changes that shared bus's timeout configuration.
 On other cores, hardware-transfer blocking is governed by that core's Wire
 implementation; a polling timeout cannot interrupt a blocked Wire call.
 
-## Arduino CLI builds and host tests
+## VS Code builds and tests
 
-Install Arduino CLI and your board core. From the extracted `VL53L4CD`
-folder, compile with your board's FQBN, such as `arduino:avr:uno`:
+Install Arduino CLI and your board core, then run **Tasks: Run Task >
+Arduino: compile example**. Select an example and enter an FQBN, such as
+`arduino:avr:uno`. The task uses this local library.
 
 ```powershell
-arduino-cli compile --fqbn arduino:avr:uno --library . .\examples\Continuous
-arduino-cli compile --fqbn arduino:avr:uno --library . .\examples\MultipleContinuous
-arduino-cli compile --fqbn arduino:avr:uno --library . .\examples\Single
-arduino-cli compile --fqbn arduino:avr:uno --library . .\examples\ChangeAddress
+arduino-cli compile --fqbn arduino:avr:uno --libraries .. .\examples\Continuous
+arduino-cli compile --fqbn arduino:avr:uno --libraries .. .\examples\Single
 arduino-cli compile --fqbn arduino:avr:uno .\examples\scani2c
 .\tests\run.ps1
 ```

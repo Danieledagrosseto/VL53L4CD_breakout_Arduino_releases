@@ -13,12 +13,12 @@ The EZrange breakout uses a bridge-specific I2C protocol.
 
 ## Download
 
-[Download Arduino library v2.0.3](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/download/v2.0.3/VL53L4CD_breakout_Arduino_v2.0.3.zip)
+[Download Arduino library v2.0.4](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/download/v2.0.4/VL53L4CD_breakout_Arduino_v2.0.4.zip)
 
 [Latest release](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases/latest)
 | [All releases](https://github.com/Danieledagrosseto/VL53L4CD_breakout_Arduino_releases/releases)
 
-The ZIP includes the Arduino library source, API documentation, five example
+The ZIP includes the Arduino library source, API documentation, six example
 sketches, board photos for both connector layouts, their schematics, retained
 license notices, and host tests. This repository hosts the README and
 downloadable release packages; library source and board documentation are
@@ -31,7 +31,7 @@ example for your Arduino board.
 
 1. Download the release ZIP, not GitHub's automatic "Source code" archive.
 2. In Arduino IDE, select **Sketch > Include Library > Add .ZIP Library**
-   and choose `VL53L4CD_breakout_Arduino_v2.0.3.zip`.
+   and choose `VL53L4CD_breakout_Arduino_v2.0.4.zip`.
    Alternatively, extract its `VL53L4CD` folder into your sketchbook's
    `libraries` directory and restart Arduino IDE.
 3. Connect SDA, SCL, and GND to the corresponding breakout pins. Use the
@@ -50,9 +50,10 @@ example does not change the board's persistent address.
 
 | Example | Purpose |
 | --- | --- |
-| Continuous | Select an existing address and read continuous distance measurements. |
-| MultipleContinuous | Discover up to six sensors, prompt for timing and frame count, buffer all samples, then print capture time and CSV data. |
-| Single | Select an existing address and start, read, then stop each measurement. |
+| Continuous | Select an existing address, set ranging parameters, and read continuous distance measurements. |
+| MultipleContinuous | Discover up to six sensors, prompt for timing, frame count, and per-sensor ranging parameters, buffer all samples, then print capture time and CSV data. |
+| Single | Select an existing address, set ranging parameters, and start, read, then stop each measurement. |
+| OffsetCalibration | Read the current ranging offset, prompt for a known target distance and sample count, then calibrate and write the sensor's offset register. |
 | ChangeAddress | Scan the bus, select old and unused new addresses, program the persistent bridge address, and verify the sensor. |
 | scani2c | Scan non-reserved 7-bit I2C addresses every five seconds using only `Wire`. |
 
@@ -61,6 +62,23 @@ ChangeAddress use **400 kHz I2C**. ChangeAddress writes the bridge's EEPROM:
 avoid unnecessary writes and use the new address in later sketches. Connect
 only one device at the old address; an I2C scan cannot detect address
 collisions.
+
+## Version 2.0.4
+
+- Adds set/get methods for the **sigma threshold** (0-16383 mm), **signal
+  threshold** (0-16384 kcps, stored in 8 kcps steps), and **ranging offset**
+  (-1024 to 1023 mm) to the driver API.
+- Continuous, Single, and MultipleContinuous now display each sensor's current
+  sigma threshold, signal threshold, and offset after initialization, prompt
+  for new decimal values (an empty line keeps the current value), and print the
+  values read back. These writes change sensor registers only, not bridge
+  EEPROM, so they revert on sensor power cycles.
+- Adds the **OffsetCalibration** example: shows the current offset, prompts for
+  a target distance (10-1000 mm) and sample count (5-255), clears the offset
+  registers, takes ten warm-up readings plus the requested samples, then writes
+  and reads back the calibrated offset.
+- Adds the shared `VL53L4CDRangingParametersInput.h` prompt parser and extends
+  the host tests to cover the new features.
 
 ## Version 2.0.3
 

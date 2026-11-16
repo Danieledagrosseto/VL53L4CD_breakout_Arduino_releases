@@ -14,12 +14,15 @@ class VL53L4CD
       OSC_FREQUENCY                              = 0x0006,
       VHV_CONFIG_TIMEOUT_MACROP_LOOP_BOUND        = 0x0008,
       ALGO_PART_TO_PART_RANGE_OFFSET_MM           = 0x001E,
+      INNER_OFFSET_MM                            = 0x0020,
+      OUTER_OFFSET_MM                            = 0x0022,
       GPIO_HV_MUX_CTRL                           = 0x0030,
       GPIO_HV_MUX_ACTIVE_HIGH                    = GPIO_HV_MUX_CTRL,
       GPIO_TIO_HV_STATUS                         = 0x0031,
       SYSTEM_INTERRUPT_CONFIG_GPIO               = 0x0046,
       RANGE_CONFIG_A                             = 0x005E,
       RANGE_CONFIG_B                             = 0x0061,
+      RANGE_CONFIG_SIGMA_THRESH                  = 0x0064,
       FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT = 0x0066,
       SYSTEM_INTERMEASUREMENT_PERIOD             = 0x006C,
       SYSTEM_THRESH_HIGH                         = 0x0072,
@@ -68,6 +71,12 @@ class VL53L4CD
 
     bool setSignalRateLimit(float limit_Mcps);
     float getSignalRateLimit();
+    bool setSigmaThreshold(uint16_t sigma_mm);
+    uint16_t getSigmaThreshold();
+    bool setSignalThreshold(uint16_t signal_kcps);
+    uint16_t getSignalThreshold();
+    bool setOffset(int16_t offset_mm);
+    int16_t getOffset();
     bool setMeasurementTimingBudget(uint32_t budget_us);
     uint32_t getMeasurementTimingBudget();
 

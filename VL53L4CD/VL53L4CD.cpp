@@ -445,6 +445,79 @@ float VL53L4CD::getSignalRateLimit()
   return (float)raw * 0.008f;
 }
 
+bool VL53L4CD::setSigmaThreshold(uint16_t sigma_mm)
+{
+  last_error = NoError;
+  if (!initialized) { last_error = NotInitialized; return false; }
+  if (sigma_mm > (0xFFFF >> 2))
+  {
+    last_error = InvalidArgument;
+    return false;
+  }
+  writeReg16Bit(RANGE_CONFIG_SIGMA_THRESH, (uint16_t)(sigma_mm << 2));
+  return last_error == NoError;
+}
+
+uint16_t VL53L4CD::getSigmaThreshold()
+{
+  last_error = NoError;
+  if (!initialized) { last_error = NotInitialized; return 0xFFFF; }
+  uint16_t raw = readReg16Bit(RANGE_CONFIG_SIGMA_THRESH);
+  if (last_error != NoError) { return 0xFFFF; }
+  return raw >> 2;
+}
+
+bool VL53L4CD::setSignalThreshold(uint16_t signal_kcps)
+{
+  last_error = NoError;
+  if (!initialized) { last_error = NotInitialized; return false; }
+  if (signal_kcps > 16384)
+  {
+    last_error = InvalidArgument;
+    return false;
+  }
+  writeReg16Bit(FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT, signal_kcps >> 3);
+  return last_error == NoError;
+}
+
+uint16_t VL53L4CD::getSignalThreshold()
+{
+  last_error = NoError;
+  if (!initialized) { last_error = NotInitialized; return 0xFFFF; }
+  uint16_t raw = readReg16Bit(FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT);
+  if (last_error != NoError) { return 0xFFFF; }
+  return (uint16_t)(raw << 3);
+}
+
+bool VL53L4CD::setOffset(int16_t offset_mm)
+{
+  last_error = NoError;
+  if (!initialized) { last_error = NotInitialized; return false; }
+  if (offset_mm < -1024 || offset_mm > 1023)
+  {
+    last_error = InvalidArgument;
+    return false;
+  }
+  writeReg16Bit(ALGO_PART_TO_PART_RANGE_OFFSET_MM,
+                (uint16_t)((uint16_t)offset_mm * 4));
+  if (last_error != NoError) { return false; }
+  writeReg16Bit(INNER_OFFSET_MM, 0);
+  if (last_error != NoError) { return false; }
+  writeReg16Bit(OUTER_OFFSET_MM, 0);
+  return last_error == NoError;
+}
+
+int16_t VL53L4CD::getOffset()
+{
+  last_error = NoError;
+  if (!initialized) { last_error = NotInitialized; return 0; }
+  uint16_t raw = readReg16Bit(ALGO_PART_TO_PART_RANGE_OFFSET_MM);
+  if (last_error != NoError) { return 0; }
+  int16_t offset = (int16_t)((uint16_t)(raw << 3) >> 5);
+  if (offset >= 1024) { offset -= 2048; }
+  return offset;
+}
+
 void VL53L4CD::startContinuous(uint32_t period_ms)
 {
   last_error = NoError;
